@@ -1,0 +1,36 @@
+server:
+  port: 7080
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: audio-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: root-redirect
+          uri: "no://op"
+          predicates:
+            - Path=/
+          filters:
+            - RedirectTo=302, /login
+        - id: frontend
+          uri: forward:/index.html
+          predicates:
+            - Path=/login, /register, /upload
+          filters:
+            - RewritePath=/(?<path>.*), /$\{path}
+        - id: auth
+          uri: lb://auth
+          predicates:
+            - Path=/auth/**
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:7777/eureka/
+
