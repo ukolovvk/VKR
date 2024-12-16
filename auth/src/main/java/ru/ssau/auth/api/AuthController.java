@@ -48,7 +48,7 @@ public class AuthController {
             if (userService.checkUser(loginReq)) {
                 String token = jwtService.createToken(loginReq.getUsername());
                 HttpHeaders headers = new HttpHeaders();
-                headers.add(HttpHeaders.SET_COOKIE, "token=" + token + "; HttpOnly; Path=/; Secure;");
+                headers.add(HttpHeaders.SET_COOKIE, "token=" + token + "; Path=/;");
                 return ResponseEntity.ok().headers(headers).build();
             }
             else

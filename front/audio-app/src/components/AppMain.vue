@@ -14,7 +14,7 @@
       <form class="text-center p-4 rounded bg-dark" @submit.prevent="uploadAudio" style="max-width: 500px; width: 100%; color: #fff;">
         <h3 class="mb-3 text-white">Select <span>Audio</span></h3> <!-- Увеличенный размер и белый цвет для "Audio" -->
         <div class="mb-3">
-          <input class="form-control" type="file" id="formFile" @change="handleFileUpload">
+          <input class="form-control" type="file" id="formFile" @change="handleFileUpload" ref="fileInput">
         </div>
         <button type="submit" class="btn" style="background-color: #ff8c00;">Upload</button> <!-- Рыжая кнопка -->
       </form>
@@ -28,25 +28,60 @@ export default {
   name: 'AppMain',
   data() {
     return {
-      userName: 'User Name', // Замените на динамические данные пользователя, если необходимо
+      userName: '',
     };
+  },
+  mounted() {
+    this.userName = Cookies.get('username') || 'unknown';
   },
   methods: {
     logout() {
-      // Удаляем куки
       Cookies.remove('token');
-
-      // Перенаправляем пользователя на страницу входа
       window.location.href = '/login';
     },
     handleFileUpload(event) {
       const file = event.target.files[0];
       console.log('File selected:', file.name);
-      // Здесь можно добавить логику для обработки файла
+
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File is too large. Maximum size is 10MB.');
+        this.$refs.fileInput.value = '';
+        return;
+      }
+      const validExtensions = ['mp3', 'wav', 'mp4'];
+      const extension = file.name.split('.').pop().toLowerCase();
+      if (!validExtensions.includes(extension)) {
+        alert('Invalid file type. Only MP3, WAV, and MP4 files are allowed.');
+        this.$refs.fileInput.value = '';
+        return;
+      }
+      this.selectedFile = file;
     },
     uploadAudio() {
-      console.log('Uploading audio...');
-      // Логика отправки файла на сервер
+      if (!this.selectedFile) {
+        alert('Please select a file first.');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', this.selectedFile);
+      fetch('http://localhost:7080/audio/upload', {
+        method: 'POST',
+        body: formData,
+      })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to upload file');
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log('Success:', data);
+            alert('File uploaded successfully. The report will be generated.');
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error uploading file');
+          });
     },
   },
 };
@@ -55,17 +90,17 @@ export default {
 <style scoped>
 .vh-100, html, body {
   height: 100vh;
-  overflow: hidden; /* Применяем к .vh-100 и к <html> и <body> */
+  overflow: hidden;
   padding: 0;
   margin: 0;
 }
 
 .bg-black {
-  background-color: #000; /* Черный цвет для заднего фона */
+  background-color: #000;
 }
 
 .bg-dark {
-  background-color: #343a40 !important; /* Черный цвет для меню и формы */
+  background-color: #343a40 !important;
 }
 
 .form-control, .btn {
@@ -73,13 +108,13 @@ export default {
 }
 
 .form-control {
-  background-color: #333; /* Черный фон для поля ввода */
-  border: 1px solid #666; /* Слегка выделяем границу */
-  color: #fff; /* Белый текст внутри поля ввода */
+  background-color: #333;
+  border: 1px solid #666;
+  color: #fff;
 }
 
 .form-control::file-selector-button {
-  background-color: #666; /* Темнее кнопка выбора файла */
+  background-color: #666;
   color: #fff;
   border-color: #333;
 }

@@ -14,16 +14,26 @@ spring:
             - Path=/
           filters:
             - RedirectTo=302, /login
-        - id: frontend
+        - id: frontend-auth
           uri: forward:/index.html
           predicates:
-            - Path=/login, /register, /upload
+            - Path=/login, /register
           filters:
             - RewritePath=/(?<path>.*), /$\{path}
+        - id: frontend-main
+          uri: forward:/index.html
+          predicates:
+            - Path=/upload
+          filters:
+            - JwtFilter
         - id: auth
           uri: lb://auth
           predicates:
             - Path=/auth/**
+        - id: audio-backend
+          uri: lb://backend
+          predicates:
+            - Path=/audio/**
 
 logging:
   level:
@@ -33,4 +43,8 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:7777/eureka/
+
+token:
+  signing:
+    key: 53A73E5F1C4E0A2D3B5F2D784E6A1B423D6F247D1F6E5C3A596D635A75327855
 
