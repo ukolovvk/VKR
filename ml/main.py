@@ -33,7 +33,7 @@ def update_audio(uuid):
     try:
         conn = psycopg2.connect(**postgres_config)
         cursor = conn.cursor()
-        update_query = "UPDATE audio SET description = %s WHERE uuid_column = %s"
+        update_query = "UPDATE audio SET description = %s WHERE s3_uuid = %s"
         cursor.execute(update_query, (f'description for uuid: {uuid}', uuid))
         conn.commit()
         cursor.close()
@@ -46,7 +46,6 @@ def consume_messages():
         while True:
             msg = consumer.poll(1.0)
             if msg is None:
-                print("nothing")
                 continue
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
