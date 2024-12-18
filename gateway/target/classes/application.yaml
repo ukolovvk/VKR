@@ -26,6 +26,12 @@ spring:
             - Path=/upload
           filters:
             - JwtFilter
+        - id: frontend-history
+          uri: forward:/index.html
+          predicates:
+            - Path=/history
+          filters:
+            - JwtFilter
         - id: auth
           uri: lb://auth
           predicates:

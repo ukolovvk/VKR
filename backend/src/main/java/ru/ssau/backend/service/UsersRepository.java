@@ -10,12 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
  * @author ukolov-victor
  */
 @Repository
-public class UsersService {
+public class UsersRepository {
 
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public UsersService(JdbcTemplate jdbcTemplate) {
+    public UsersRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

@@ -4,10 +4,15 @@ server:
 spring:
   application:
     name: backend
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
   datasource:
     url: jdbc:postgresql://localhost:5432/audio_events
-    username: postgres
-    password: pass
+    username: user
+    password: password
   jpa:
     hibernate:
       ddl-auto: create-drop

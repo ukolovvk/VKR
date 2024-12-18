@@ -11,6 +11,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -48,6 +49,11 @@ public class JwtFilter implements GatewayFilter, Ordered {
                     .parseClaimsJws(token)
                     .getBody();
             String username = claims.getSubject();
+            ResponseCookie usernameCookie = ResponseCookie.from("username", username)
+                    .path("/")
+                    .httpOnly(false)
+                    .build();
+            exchange.getResponse().addCookie(usernameCookie);
         } catch (Exception ex) {
             System.out.println("Invalid jwt token: " + ex.getMessage());
             exchange.getResponse().setStatusCode(HttpStatus.FOUND);

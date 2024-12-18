@@ -28,5 +28,4 @@ public class MinioConfig {
                 .credentials(user, password)
                 .build();
     }
-
 }

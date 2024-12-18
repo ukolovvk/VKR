@@ -3,19 +3,18 @@ package ru.ssau.backend.api;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import ru.ssau.backend.entity.Audio;
+import ru.ssau.backend.service.AudioService;
 
 /**
  * @author ukolov-victor
@@ -25,29 +24,25 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/audio")
 public class AudioController {
 
-    @Value("${s3.bucket}")
-    private String bucket;
+    private AudioService audioService;
 
     @Autowired
-    private MinioClient minioClient;
+    public AudioController(AudioService audioService) {
+        this.audioService = audioService;
+    }
 
     @PostMapping("/upload")
-    public ResponseEntity<Map<String, String>> UploadAudio(@RequestParam("file") MultipartFile file) {
-        try {
-           if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(this.bucket).build())) {
-               minioClient.makeBucket(MakeBucketArgs.builder().bucket(this.bucket).build());
-           }
-           minioClient.putObject(PutObjectArgs.builder()
-                           .bucket(this.bucket)
-                           .object(file.getOriginalFilename())
-                           .stream(file.getInputStream(), file.getSize(), -1)
-                           .contentType(file.getContentType())
-                           .build()
-           );
-            return new ResponseEntity<>(new HashMap<>(){{ put("message", "File has been successfully uploaded"); }}, HttpStatus.OK);
-        } catch (Exception ex) {
-            System.out.println("minio error: " + ex.getMessage());
-            return new ResponseEntity<>(new HashMap<>(){{ put("message", "internal error"); }}, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<Map<String, String>> UploadAudio(@RequestParam("file") MultipartFile file, @RequestParam("username") String username) {
+       if (audioService.uploadAudio(file, username))
+           return new ResponseEntity<>(new HashMap<>(){{ put("message", "File has been successfully uploaded"); }}, HttpStatus.OK);
+       return new ResponseEntity<>(new HashMap<>(){{ put("message", "internal error"); }}, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<Map<Long, Audio>> GetHistory(@RequestParam("username") String username) {
+        Map<Long, Audio> result = audioService.getHistory(username);
+        if (result == null)
+            return new ResponseEntity<>(new HashMap<>(), HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 }
