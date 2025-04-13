@@ -1,7 +1,6 @@
 import aioboto3
 import logging
 from app.config import CFG
-from botocore.exceptions import ClientError
 from io import BytesIO
 
 
@@ -14,9 +13,19 @@ async def download_file_from_s3(bucket: str, file_uuid: str) -> bytes:
             endpoint_url=CFG.s3.url,
             aws_access_key_id=CFG.s3.user,
             aws_secret_access_key=CFG.s3.password,
+            config=aioboto3.session.AioConfig(
+                signature_version='s3v4',
+                s3={'addressing_style': 'path'}
+            )
     ) as s3:
-        resp = await s3.get_object(Bucket=bucket, Key=file_uuid)
-        return await resp["Body"].read()
+        try:
+            resp = await s3.get_object(Bucket=bucket, Key=file_uuid)
+            return await resp["Body"].read()
+        except s3.exceptions.NoSuchKey:
+            raise FileNotFoundError(f"file not found in bucket: {file_uuid}")
+        except Exception as ex:
+            logger.exception("failed to download file from S3", exc_info=ex)
+            raise
 
 
 async def upload_file_to_s3(bucket: str, file_name: str, file: BytesIO):
@@ -26,4 +35,8 @@ async def upload_file_to_s3(bucket: str, file_name: str, file: BytesIO):
             aws_access_key_id=CFG.s3.user,
             aws_secret_access_key=CFG.s3.password,
     ) as s3:
-        await s3.upload_fileobj(file, bucket, file_name)
+        try:
+            await s3.upload_fileobj(file, bucket, file_name)
+        except Exception as ex:
+            logger.exception("failed to upload file from S3", exc_info=ex)
+            raise

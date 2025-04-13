@@ -4,13 +4,13 @@ server:
 spring:
   application:
     name: backend
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#  kafka:
+#    bootstrap-servers: localhost:9092
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
   datasource:
-    url: jdbc:postgresql://localhost:5432/audio_events
+    url: jdbc:postgresql://pg:5432/audio_events
     username: user
     password: password
   jpa:
@@ -24,10 +24,10 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:7777/eureka/
+      defaultZone: http://sd:7777/eureka/
 
 s3:
-  url: http://localhost:9000
+  url: http://minio:9000
   bucket: audio
   user: user
   password: password

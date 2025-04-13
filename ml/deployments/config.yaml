@@ -1,0 +1,19 @@
+port: 8000
+log:
+  level: DEBUG
+s3:
+  url: http://minio:9000
+  user: user
+  password: password
+  audio_bucket: audio
+  reports_bucket: reports
+postgres:
+  host: pg
+  port: 5432
+  user: user
+  password: password
+  database: audio_events
+  audio_table_name: audio
+eureka:
+  url: http://sd:7777/eureka/
+  app_name: ml

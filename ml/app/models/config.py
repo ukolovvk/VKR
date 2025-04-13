@@ -23,8 +23,14 @@ class PostgresCfg(BaseModel):
     audio_table_name: str
 
 
+class EurekaCfg(BaseModel):
+    url: str
+    app_name: str
+
+
 class AppConfig(BaseModel):
     port: int = Field(gt=0, le=65535)
     log: LoggingConfig
     s3: S3Cfg
     postgres: PostgresCfg
+    eureka: EurekaCfg

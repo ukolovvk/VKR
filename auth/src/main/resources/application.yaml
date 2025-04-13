@@ -5,7 +5,7 @@ spring:
   application:
     name: auth
   datasource:
-    url: jdbc:postgresql://localhost:5432/audio_events
+    url: jdbc:postgresql://pg:5432/audio_events
     username: user
     password: password
   jpa:
@@ -19,7 +19,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:7777/eureka/
+      defaultZone: http://sd:7777/eureka/
 
 token:
   signing:

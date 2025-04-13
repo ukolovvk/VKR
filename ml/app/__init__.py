@@ -1,10 +1,9 @@
 import logging
 import sys
 
-import asyncpg
-
 from app.config import CFG
 from fastapi import FastAPI
+from py_eureka_client import eureka_client
 from app.handlers.audio import audio_router
 
 
@@ -21,11 +20,11 @@ def _setup_logger(level):
 
 _setup_logger(CFG.log.level)
 
-pgpool = asyncpg.create_pool(
-    f"postgresql://{CFG.postgres.user}:{CFG.postgres.password}@{CFG.postgres.host}:{CFG.postgres.port}/{CFG.postgres.database}",
-    min_size=3,
-    max_size=30
-)
-
 app = FastAPI()
 app.include_router(audio_router)
+
+eureka_client.init(
+    eureka_server=CFG.eureka.url,
+    app_name=CFG.eureka.app_name,
+    instance_port=CFG.port
+)

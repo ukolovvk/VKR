@@ -29,6 +29,9 @@ public class Audio {
     @Column(name = "size", nullable = false)
     private Long size;
 
+    @Column(name = "uploaded", nullable = false)
+    private Long uploadedTimestamp;
+
     @Column(name = "s3_uuid", unique = true, nullable = false)
     private String s3Uuid;
 
@@ -38,14 +41,25 @@ public class Audio {
     @Column(name = "bucket", nullable = false)
     private String bucket;
 
-    @Column(name = "description")
+    @Column(name = "status", nullable = false)
+    private String status;
+
+    @Column(name = "report link", nullable = true)
     private String description;
 
-    public Audio(String name, long size, String s3Uuid, Long userId, String bucket) {
+    @Column(name = "analyze_finished", nullable = true)
+    private Long analyzeFinished;
+
+    @Column(name = "analyze_started", nullable = true)
+    private Long analyzeStarted;
+
+    public Audio(String name, long size, Long uploadedTimestamp, String s3Uuid, Long userId, String bucket, String status) {
         this.name = name;
         this.size = size;
+        this.uploadedTimestamp = uploadedTimestamp;
         this.s3Uuid = s3Uuid;
         this.userId = userId;
         this.bucket = bucket;
+        this.status = status;
     }
 }
