@@ -13,6 +13,6 @@ WORKDIR /app
 
 COPY --from=build /app/target/gateway-1.0.0.jar app.jar
 
-EXPOSE 7779
+EXPOSE 7080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

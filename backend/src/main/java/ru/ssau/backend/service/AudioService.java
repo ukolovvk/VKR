@@ -44,10 +44,11 @@ public class AudioService {
     }
 
     public boolean uploadAudio(MultipartFile file, String username) {
+        String filename = String.format("%d-%s", System.currentTimeMillis(), file.getOriginalFilename());
         try {
             ObjectWriteResponse response = minioClient.putObject(PutObjectArgs.builder()
                     .bucket(this.bucket)
-                    .object(file.getOriginalFilename())
+                    .object(filename)
                     .stream(file.getInputStream(), file.getSize(), -1)
                     .contentType(file.getContentType())
                     .build()
@@ -55,7 +56,7 @@ public class AudioService {
             Long userid = usersRepository.getUserIdByUsername(username);
             if (userid == null) return false;
             Audio savedAudio = audioRepository.save(new Audio(file.getOriginalFilename(), file.getSize(), System.currentTimeMillis(), response.etag(), userid, this.bucket, uploadedStatus));
-            mlService.Notify(response.etag());
+            mlService.Notify(filename);
             return savedAudio.getId() > 0;
         } catch (Exception ex) {
             System.out.println("failed to save audio: " + ex.getMessage());
