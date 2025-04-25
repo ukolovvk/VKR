@@ -54,8 +54,9 @@ public class AudioService {
                     .build()
             );
             Long userid = usersRepository.getUserIdByUsername(username);
-            if (userid == null) return false;
-            Audio savedAudio = audioRepository.save(new Audio(file.getOriginalFilename(), file.getSize(), System.currentTimeMillis(), response.etag(), userid, this.bucket, uploadedStatus));
+            if (userid == null)
+                return false;
+            Audio savedAudio = audioRepository.save(new Audio(filename, file.getSize(), System.currentTimeMillis(), response.etag(), userid, this.bucket, uploadedStatus));
             mlService.Notify(filename);
             return savedAudio.getId() > 0;
         } catch (Exception ex) {
