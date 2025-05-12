@@ -23,8 +23,11 @@ public class Audio {
     @SequenceGenerator(name = "audio_seq", sequenceName = "audio_sequence", allocationSize = 1)
     private Long id;
 
-    @Column(name = "name", nullable = false)
-    private String name;
+    @Column(name = "uuid", nullable = false)
+    private String uuid;
+
+    @Column(name = "original_filename", nullable = false)
+    private String originalFilename;
 
     @Column(name = "size", nullable = false)
     private Long size;
@@ -32,8 +35,8 @@ public class Audio {
     @Column(name = "uploaded", nullable = false)
     private Long uploadedTimestamp;
 
-    @Column(name = "s3_uuid", unique = true, nullable = false)
-    private String s3Uuid;
+    @Column(name = "etag", nullable = false)
+    private String etag;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
@@ -44,8 +47,8 @@ public class Audio {
     @Column(name = "status", nullable = false)
     private String status;
 
-    @Column(name = "report link", nullable = true)
-    private String description;
+    @Column(name = "report_link", nullable = true)
+    private String reportLink;
 
     @Column(name = "analyze_finished", nullable = true)
     private Long analyzeFinished;
@@ -53,13 +56,18 @@ public class Audio {
     @Column(name = "analyze_started", nullable = true)
     private Long analyzeStarted;
 
-    public Audio(String name, long size, Long uploadedTimestamp, String s3Uuid, Long userId, String bucket, String status) {
-        this.name = name;
+    @Column(name = "model", nullable = false)
+    private String model;
+
+    public Audio(String uuid, String originalFilename, long size, Long uploadedTimestamp, String etag, Long userId, String bucket, String status, String model) {
+        this.uuid = uuid;
+        this.originalFilename = originalFilename;
         this.size = size;
         this.uploadedTimestamp = uploadedTimestamp;
-        this.s3Uuid = s3Uuid;
+        this.etag = etag;
         this.userId = userId;
         this.bucket = bucket;
         this.status = status;
+        this.model = model;
     }
 }

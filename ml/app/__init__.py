@@ -2,6 +2,7 @@ import logging
 import sys
 
 from app.config import CFG
+from app.repo import init_pgpool, close_pgpool
 from fastapi import FastAPI
 from py_eureka_client import eureka_client
 from app.handlers.audio import audio_router
@@ -22,6 +23,17 @@ _setup_logger(CFG.log.level)
 
 app = FastAPI()
 app.include_router(audio_router)
+
+
+@app.on_event("startup")
+async def startup():
+    await init_pgpool()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await close_pgpool()
+
 
 eureka_client.init(
     eureka_server=CFG.eureka.url,

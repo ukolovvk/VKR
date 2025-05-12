@@ -1,5 +1,6 @@
 package ru.ssau.backend.service;
 
+import java.net.URI;
 import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * @author ukolov-victor
@@ -24,8 +26,11 @@ public class MLService {
     @Value("http://ml:8000/audio/v1/analyze")
     private String analyzeAudioEndpoint;
 
-    @Value("s3_uuid")
+    @Value("s3_filename")
     private String analyzeS3ParameterName;
+
+    @Value("model")
+    private String modelParameterName;
 
     private final RestTemplate restTemplate;
 
@@ -42,11 +47,15 @@ public class MLService {
                     multiplier = 2
             )
     )
-    public ResponseEntity<String> Notify(String audioFileUuid) {
+    public ResponseEntity<String> Notify(String uuid, String model) {
+        URI uri = UriComponentsBuilder.fromHttpUrl(analyzeAudioEndpoint)
+                .queryParam(modelParameterName, model)
+                .build()
+                .toUri();
         return restTemplate.postForEntity(
-                analyzeAudioEndpoint,
+                uri,
                 new HttpEntity<>(
-                        Collections.singletonMap(analyzeS3ParameterName, audioFileUuid),
+                        Collections.singletonMap(analyzeS3ParameterName, uuid),
                         new HttpHeaders() {{
                             setContentType(MediaType.APPLICATION_JSON);
                         }}

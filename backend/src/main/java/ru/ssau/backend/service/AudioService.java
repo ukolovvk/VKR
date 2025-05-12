@@ -1,7 +1,6 @@
 package ru.ssau.backend.service;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -30,6 +29,12 @@ public class AudioService {
     @Value("uploaded")
     private String uploadedStatus;
 
+    @Value("filename")
+    private String filenameTag;
+
+    @Value("user")
+    private String userTag;
+
     private final AudioRepository audioRepository;
     private final MinioClient minioClient;
     private final UsersRepository usersRepository;
@@ -43,21 +48,35 @@ public class AudioService {
         this.mlService = mlService;
     }
 
-    public boolean uploadAudio(MultipartFile file, String username) {
-        String filename = String.format("%d-%s", System.currentTimeMillis(), file.getOriginalFilename());
+    public boolean uploadAudio(MultipartFile file, String username, String model) {
+        System.out.println("!!! upload " + model + " " + username);
+        if (model.isEmpty()) {
+            System.out.println("model is empty");
+            return false;
+        }
+        String uuid = UUID.randomUUID().toString();
+        String filename = file.getOriginalFilename();
+        if (filename == null) {
+            System.out.println("filename is null");
+            return false;
+        }
+        Map<String, String> metadata = Map.of(filenameTag, filename, userTag, uuid);
         try {
             ObjectWriteResponse response = minioClient.putObject(PutObjectArgs.builder()
                     .bucket(this.bucket)
-                    .object(filename)
+                    .object(uuid)
                     .stream(file.getInputStream(), file.getSize(), -1)
                     .contentType(file.getContentType())
+                    .userMetadata(metadata)
                     .build()
             );
             Long userid = usersRepository.getUserIdByUsername(username);
-            if (userid == null)
+            if (userid == null) {
+                System.out.println("user hasn't been found");
                 return false;
-            Audio savedAudio = audioRepository.save(new Audio(filename, file.getSize(), System.currentTimeMillis(), response.etag(), userid, this.bucket, uploadedStatus));
-            mlService.Notify(filename);
+            }
+            Audio savedAudio = audioRepository.save(new Audio(uuid, file.getOriginalFilename(), file.getSize(), System.currentTimeMillis(), response.etag(), userid, this.bucket, uploadedStatus, model));
+            mlService.Notify(uuid, model);
             return savedAudio.getId() > 0;
         } catch (Exception ex) {
             System.out.println("failed to save audio: " + ex.getMessage());
@@ -71,6 +90,8 @@ public class AudioService {
             return null;
         }
         List<Audio> audios = audioRepository.findByUserId(userId);
-        return audios.stream().collect(Collectors.toMap(Audio::getId, Function.identity()));
+        return audios.stream()
+                .sorted(Comparator.comparing(Audio::getUploadedTimestamp))
+                .collect(Collectors.toMap(Audio::getId, Function.identity(), (oldValue, newValue) -> oldValue, LinkedHashMap::new));
     }
 }

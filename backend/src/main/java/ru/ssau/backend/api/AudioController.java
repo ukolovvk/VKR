@@ -24,7 +24,7 @@ import ru.ssau.backend.service.AudioService;
 @RequestMapping("/audio")
 public class AudioController {
 
-    private AudioService audioService;
+    private final AudioService audioService;
 
     @Autowired
     public AudioController(AudioService audioService) {
@@ -32,10 +32,13 @@ public class AudioController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<Map<String, String>> UploadAudio(@RequestParam("file") MultipartFile file, @RequestParam("username") String username) {
-       if (audioService.uploadAudio(file, username))
+    public ResponseEntity<Map<String, String>> UploadAudio(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("username") String username,
+            @RequestParam("model") String model) {
+        if (audioService.uploadAudio(file, username, model))
            return new ResponseEntity<>(new HashMap<>(){{ put("message", "File has been successfully uploaded"); }}, HttpStatus.OK);
-       return new ResponseEntity<>(new HashMap<>(){{ put("message", "internal error"); }}, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(new HashMap<>(){{ put("message", "internal error"); }}, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @GetMapping("/history")

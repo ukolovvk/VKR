@@ -13,10 +13,7 @@ async def download_file_from_s3(bucket: str, file_uuid: str) -> bytes:
             endpoint_url=CFG.s3.url,
             aws_access_key_id=CFG.s3.user,
             aws_secret_access_key=CFG.s3.password,
-            config=aioboto3.session.AioConfig(
-                signature_version='s3v4',
-                s3={'addressing_style': 'path'}
-            )
+            verify=False
     ) as s3:
         try:
             resp = await s3.get_object(Bucket=bucket, Key=file_uuid)
