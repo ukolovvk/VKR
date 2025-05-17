@@ -48,7 +48,7 @@ logging:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:7777/eureka/
+      defaultZone: http://sd:7777/eureka/
 
 token:
   signing:

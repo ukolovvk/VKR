@@ -1,0 +1,18 @@
+-i https://pypi.org/simple/
+FastAPI==0.115.12
+py_eureka_client==0.11.13
+pydantic==2.11.2
+uvicorn==0.34.0
+aioboto3==14.1.0
+filetype==1.2.0
+PyYAML==6.0.2
+pandas==2.2.3
+librosa==0.11.0
+numpy==2.0.2
+tensorflow_hub==0.16.1
+transformers==4.51.3
+torchaudio==2.7.0
+hf_xet==1.1.0
+torch==2.7.0
+openpyxl==3.1.5
+asyncpg==0.30.0

@@ -41,8 +41,6 @@ public class JwtFilter implements GatewayFilter, Ordered {
             return exchange.getResponse().setComplete();
         }
 
-        System.out.println("cookie val: " + token);
-
         try {
             Claims claims = Jwts.parser()
                     .setSigningKey(secretKey)

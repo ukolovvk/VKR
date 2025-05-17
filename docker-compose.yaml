@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   pg:
-    image: postgres:latest
+    image: postgres:17.4-alpine
     container_name: postgres_container
     environment:
       POSTGRES_USER: user
@@ -10,8 +10,14 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user", "-d", "audio_events"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
   minio:
-    image: quay.io/minio/minio
+    image: bitnami/minio:2025.4.8
     container_name: minio_container
     ports:
       - "9000:9000"
@@ -20,37 +26,149 @@ services:
       MINIO_ROOT_USER: user
       MINIO_ROOT_PASSWORD: password
     command: server /tmp/minio --console-address ":9001"
-  kafka:
-    image: 'bitnami/kafka:3.3.1'
-    container_name: kafka_container
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+  minio_buckets:
+    image: bitnami/minio:2025.4.8
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Adding Minio host';
+      mc config host add myminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      mc mb myminio/audio && echo 'Bucket audio created' || echo 'Bucket audio already exists';
+      mc mb myminio/reports && echo 'Bucket reports created' || echo 'Bucket reports already exists';
+      echo 'Setting bucket policies...';
+      mc anonymous set download myminio/audio && echo 'Policy set for audio bucket';
+      mc anonymous set download myminio/reports && echo 'Policy set for reports bucket';
+      echo 'Bucket initialization completed';
+      exit 0;
+      "
     environment:
-      - KAFKA_ENABLE_KRAFT=yes
-      - KAFKA_CFG_PROCESS_ROLES=broker,controller
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,INSIDE://:29092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INSIDE:PLAINTEXT
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,INSIDE://kafka_container:29092
-      - KAFKA_CFG_BROKER_ID=1
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka_container:9093
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_KRAFT_CLUSTER_ID=r4zt_wrqTRuT7W2NJsB_GA
+      - MINIO_ROOT_USER=user
+      - MINIO_ROOT_PASSWORD=password
+  sd:
+    build:
+      context: ./sd
+      dockerfile: ./deployments/Dockerfile
     ports:
-      - "9092:9092"
-      - "9093:9093"
-      - "29092:29092"
-    networks:
-      - kafka_network
-  kafka-ui:
-    container_name: kafka_ui_container
-    image: 'provectuslabs/kafka-ui:latest'
+      - "7777:7777"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7777/eureka/apps"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+  ml:
+    build:
+      context: ./ml
+      dockerfile: ./deployments/Dockerfile
     ports:
-      - "8080:8080"
+      - "8000:8000"
     environment:
-      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka_container:29092
-      - KAFKA_CLUSTERS_0_NAME=r4zt_wrqTRuT7W2NJsB_GA
-    networks:
-      - kafka_network
-
+      - PYTHONPATH=/app
+    depends_on:
+      sd:
+        condition: service_healthy
+      pg:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "8000" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 180s
+  auth:
+    build:
+      context: ./auth
+      dockerfile: ./deployments/Dockerfile
+    ports:
+      - "7778:7778"
+    depends_on:
+      sd:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "7778" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ./deployments/Dockerfile
+    ports:
+      - "7779:7779"
+    depends_on:
+      auth:
+        condition: service_healthy
+      ml:
+        condition: service_healthy
+      pg:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio_buckets:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "7779" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+  gateway:
+    build:
+      context: .
+      dockerfile: ./gateway/deployments/Dockerfile
+    ports:
+      - "7080:7080"
+    depends_on:
+      backend:
+        condition: service_healthy
 networks:
-  kafka_network:
+  default:
     driver: bridge
+    name: my-app-network
+
+
+#  kafka:
+#    image: 'bitnami/kafka:3.3.1'
+#    container_name: kafka_container
+#    environment:
+#      - KAFKA_ENABLE_KRAFT=yes
+#      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+#      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+#      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,INSIDE://:29092
+#      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INSIDE:PLAINTEXT
+#      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,INSIDE://kafka_container:29092
+#      - KAFKA_CFG_BROKER_ID=1
+#      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka_container:9093
+#      - ALLOW_PLAINTEXT_LISTENER=yes
+#      - KAFKA_KRAFT_CLUSTER_ID=r4zt_wrqTRuT7W2NJsB_GA
+#    ports:
+#      - "9092:9092"
+#      - "9093:9093"
+#      - "29092:29092"
+#    networks:
+#      - kafka_network
+#  kafka-ui:
+#    container_name: kafka_ui_container
+#    image: 'provectuslabs/kafka-ui:latest'
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka_container:29092
+#      - KAFKA_CLUSTERS_0_NAME=r4zt_wrqTRuT7W2NJsB_GA
+#    networks:
+#      - kafka_network
+
+#networks:
+#  kafka_network:
+#    driver: bridge
