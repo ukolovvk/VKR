@@ -12,7 +12,7 @@ import numpy as np
 from . import yamnet_model, class_names, ast_model, ast_feature_extractor
 
 
-YAMNET_THRESHOLD = 0.7
+YAMNET_THRESHOLD = 0.6
 YAMNET_SAMPLE_RATE = 16000
 
 
@@ -82,15 +82,25 @@ async def _yamnet_analyze(audio_bytes):
 
 
 def _format_yamnet(start_ms, end_ms, prob, class_name):
+    start_mins = start_ms // 60000
+    start = start_ms % 60000
+    start_sec = start // 1000
+    start_msec = start % 1000
+
+    end_mins = end_ms // 60000
+    end = end_ms % 60000
+    end_sec = end // 1000
+    end_msec = end % 1000
+
     return (
-        f"{int(start_ms // 1000)}:{int(start_ms % 1000):03d}-"
-        f"{int(end_ms // 1000)}:{int(end_ms % 1000):03d}",
+        f"{int(start_mins)}:{int(start_sec)}:{int(start_msec):03d}-"
+        f"{int(end_mins)}:{int(end_sec)}:{int(end_msec):03d}",
         class_name,
         round(prob, 2)
     )
 
 
-async def _analyze_yamnet(audio_bytes):
+async def _analyze_yamnet_seq(audio_bytes):
     try:
         audio, sr = librosa.load(BytesIO(audio_bytes), sr=16000, mono=True)
     except Exception as e:
